@@ -1,8 +1,7 @@
 package it.unitn.disi.smatch.deciders;
 
-import it.unitn.disi.common.components.Configurable;
 import org.sat4j.minisat.SolverFactory;
-import org.sat4j.reader.DimacsReader;
+import org.sat4j.reader.LecteurDimacs;
 import org.sat4j.reader.ParseFormatException;
 import org.sat4j.reader.Reader;
 import org.sat4j.specs.ContradictionException;
@@ -12,7 +11,6 @@ import org.sat4j.specs.TimeoutException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.StringReader;
 
 /**
  * SAT4J-based Solver.
@@ -20,31 +18,21 @@ import java.io.StringReader;
  * @author Mikalai Yatskevich mikalai.yatskevich@comlab.ox.ac.uk
  * @author <a rel="author" href="http://autayeu.com/">Aliaksandr Autayeu</a>
  */
-public class SAT4J extends Configurable implements ISATSolver {
-
-    private Reader reader;
-
-    public SAT4J() {
-        ISolver solver = SolverFactory.newLight();
-        solver.setTimeout(3600); // 1 hour timeout
-        reader = new DimacsReader(solver);
-    }
+public class SAT4J implements ISATSolver {
 
     public boolean isSatisfiable(String input) throws SATSolverException {
         boolean result;
         try {
+            ISolver solver = SolverFactory.newDefault();
+            solver.setTimeout(3600); // 1 hour timeout
+            Reader reader = new LecteurDimacs(solver);
             IProblem problem = reader.parseInstance(new ByteArrayInputStream(input.getBytes()));
             result = problem.isSatisfiable();
-        } catch (ParseFormatException e) {
+        } catch (ParseFormatException | TimeoutException | IOException e) {
             throw new SATSolverException(e.getClass().getSimpleName() + ": " + e.getMessage() + " on input: " + input, e);
         } catch (ContradictionException e) {
             result = false;
-        } catch (TimeoutException e) {
-            throw new SATSolverException(e.getClass().getSimpleName() + ": " + e.getMessage() + " on input: " + input, e);
-        } catch (IOException e) {
-            throw new SATSolverException(e.getClass().getSimpleName() + ": " + e.getMessage() + " on input: " + input, e);
         }
         return result;
-
     }
 }

@@ -1,9 +1,8 @@
 package it.unitn.disi.smatch.classifiers;
 
-import aima.core.logic.propositional.parsing.PEParser;
+import aima.core.logic.propositional.parsing.PLParser;
 import aima.core.logic.propositional.parsing.ast.Sentence;
-import aima.core.logic.propositional.visitors.CNFTransformer;
-import it.unitn.disi.common.components.Configurable;
+import aima.core.logic.propositional.visitors.ConvertToCNF;
 import it.unitn.disi.smatch.data.trees.IContext;
 import it.unitn.disi.smatch.data.trees.INode;
 import it.unitn.disi.smatch.data.trees.INodeData;
@@ -14,7 +13,7 @@ import it.unitn.disi.smatch.data.trees.INodeData;
  *
  * @author <a rel="author" href="http://autayeu.com/">Aliaksandr Autayeu</a>
  */
-public class CNFContextClassifier extends Configurable implements IContextClassifier {
+public class CNFContextClassifier implements IContextClassifier {
 
     public void buildCNodeFormulas(IContext context) throws ContextClassifierException {
         for (INode node : context.getNodesList()) {
@@ -62,29 +61,16 @@ public class CNFContextClassifier extends Configurable implements IContextClassi
      */
     public static String toCNF(INode in, String formula) throws ContextClassifierException {
 
-        PEParser parser = new PEParser();
-        CNFTransformer transformer = new CNFTransformer();
+        PLParser parser = new PLParser();
 
         String result = formula;
         if ((formula.contains("&") && formula.contains("|")) || formula.contains("~")) {
-            String tmpFormula = formula;
-            tmpFormula = tmpFormula.trim();
-            tmpFormula = tmpFormula.replace("&", "AND");
-            tmpFormula = tmpFormula.replace("|", "OR");
-            tmpFormula = tmpFormula.replace("~", "NOT");
-            tmpFormula = "(" + tmpFormula + ")";
+            String tmpFormula = formula.trim();
 
             if (!tmpFormula.isEmpty()) {
-                tmpFormula = tmpFormula.replace('.', 'P');
-                Sentence f = (Sentence) parser.parse(tmpFormula);
-                Sentence cnf = transformer.transform(f);
-                tmpFormula = cnf.toString();
-
-                tmpFormula = tmpFormula.replace("AND", "&");
-                tmpFormula = tmpFormula.replace("OR", "|");
-                tmpFormula = tmpFormula.replace("NOT", "~");
-
-                result = tmpFormula.replace('P', '.');
+                Sentence f = parser.parse(tmpFormula);
+                Sentence cnf = ConvertToCNF.convert(f);
+                result = cnf.toString();
             } else {
                 result = tmpFormula;
             }
