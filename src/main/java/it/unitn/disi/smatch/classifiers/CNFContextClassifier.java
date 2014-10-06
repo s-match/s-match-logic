@@ -3,9 +3,12 @@ package it.unitn.disi.smatch.classifiers;
 import aima.core.logic.propositional.parsing.PLParser;
 import aima.core.logic.propositional.parsing.ast.Sentence;
 import aima.core.logic.propositional.visitors.ConvertToCNF;
+import it.unitn.disi.smatch.async.AsyncTask;
 import it.unitn.disi.smatch.data.trees.IContext;
 import it.unitn.disi.smatch.data.trees.INode;
 import it.unitn.disi.smatch.data.trees.INodeData;
+
+import java.util.Iterator;
 
 /**
  * Create concept at node formulas for each node of the context. Converts
@@ -13,12 +16,31 @@ import it.unitn.disi.smatch.data.trees.INodeData;
  *
  * @author <a rel="author" href="http://autayeu.com/">Aliaksandr Autayeu</a>
  */
-public class CNFContextClassifier implements IContextClassifier {
+public class CNFContextClassifier extends BaseContextClassifier implements IAsyncContextClassifier {
 
-    public void buildCNodeFormulas(IContext context) throws ContextClassifierException {
-        for (INode node : context.getNodesList()) {
-            buildCNode(node);
+    public CNFContextClassifier() {
+        super();
+    }
+
+    public CNFContextClassifier(IContext context) {
+        super(context);
+    }
+
+    protected void process(IContext context) throws ContextClassifierException {
+        for (Iterator<INode> i = context.getNodes(); i.hasNext(); ) {
+            if (Thread.currentThread().isInterrupted()) {
+                break;
+            }
+
+            buildCNode(i.next());
+
+            progress();
         }
+    }
+
+    @Override
+    public AsyncTask<Void, INode> asyncClassify(IContext context) {
+        return new CNFContextClassifier(context);
     }
 
     /**
@@ -30,7 +52,7 @@ public class CNFContextClassifier implements IContextClassifier {
     protected void buildCNode(INode in) throws ContextClassifierException {
         StringBuilder path = new StringBuilder();
         INodeData nd = in.getNodeData();
-        String formula = toCNF(in, nd.getcLabFormula());
+        String formula = toCNF(nd.getcLabFormula());
         if (formula != null && !formula.isEmpty() && !formula.equals(" ")) {
             if (formula.contains(" ")) {
                 formula = "(" + formula + ")";
@@ -54,20 +76,17 @@ public class CNFContextClassifier implements IContextClassifier {
     /**
      * Converts the formula into CNF.
      *
-     * @param in      the owner of the formula
      * @param formula the formula to convert
      * @return formula in CNF form
      * @throws ContextClassifierException ContextClassifierException
      */
-    public static String toCNF(INode in, String formula) throws ContextClassifierException {
-
-        PLParser parser = new PLParser();
-
+    public static String toCNF(String formula) throws ContextClassifierException {
         String result = formula;
         if ((formula.contains("&") && formula.contains("|")) || formula.contains("~")) {
             String tmpFormula = formula.trim();
 
             if (!tmpFormula.isEmpty()) {
+                PLParser parser = new PLParser();
                 Sentence f = parser.parse(tmpFormula);
                 Sentence cnf = ConvertToCNF.convert(f);
                 result = cnf.toString();

@@ -22,9 +22,12 @@ public class SAT4J implements ISATSolver {
 
     public boolean isSatisfiable(String input) throws SATSolverException {
         boolean result;
+        ISolver solver = null;
         try {
-            ISolver solver = SolverFactory.newDefault();
-            solver.setTimeout(3600); // 1 hour timeout
+            solver = SolverFactory.newLight();
+            // timer-based timeout creates a thread per problem :\
+            // for large matching tasks this exhausts resources
+            solver.setTimeoutOnConflicts(Integer.MAX_VALUE);
             Reader reader = new LecteurDimacs(solver);
             IProblem problem = reader.parseInstance(new ByteArrayInputStream(input.getBytes()));
             result = problem.isSatisfiable();
@@ -32,6 +35,10 @@ public class SAT4J implements ISATSolver {
             throw new SATSolverException(e.getClass().getSimpleName() + ": " + e.getMessage() + " on input: " + input, e);
         } catch (ContradictionException e) {
             result = false;
+        } finally {
+            if (null != solver) {
+                solver.reset();
+            }
         }
         return result;
     }
