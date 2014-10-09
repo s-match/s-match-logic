@@ -27,7 +27,7 @@ public class CNFContextClassifier extends BaseContextClassifier implements IAsyn
     }
 
     protected void process(IContext context) throws ContextClassifierException {
-        for (Iterator<INode> i = context.getNodes(); i.hasNext(); ) {
+        for (Iterator<INode> i = context.nodeIterator(); i.hasNext(); ) {
             if (Thread.currentThread().isInterrupted()) {
                 break;
             }
@@ -51,8 +51,8 @@ public class CNFContextClassifier extends BaseContextClassifier implements IAsyn
      */
     protected void buildCNode(INode in) throws ContextClassifierException {
         StringBuilder path = new StringBuilder();
-        INodeData nd = in.getNodeData();
-        String formula = toCNF(nd.getcLabFormula());
+        INodeData nd = in.nodeData();
+        String formula = toCNF(nd.getLabelFormula());
         if (formula != null && !formula.isEmpty() && !formula.equals(" ")) {
             if (formula.contains(" ")) {
                 formula = "(" + formula + ")";
@@ -60,7 +60,7 @@ public class CNFContextClassifier extends BaseContextClassifier implements IAsyn
             path.append(formula);
         }
         if (in.hasParent()) {
-            formula = in.getParent().getNodeData().getcNodeFormula();
+            formula = in.getParent().nodeData().getNodeFormula();
             if (formula != null && !formula.isEmpty() && !formula.equals(" ")) {
                 if (2 < path.length()) {
                     path.append(" & ").append(formula);
@@ -70,7 +70,7 @@ public class CNFContextClassifier extends BaseContextClassifier implements IAsyn
             }
         }
 
-        nd.setcNodeFormula(path.toString());
+        nd.setNodeFormula(path.toString());
     }
 
     /**
